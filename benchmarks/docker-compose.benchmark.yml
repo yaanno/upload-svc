@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  go-service:
+    build: ../svc-go
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../svc-go/tmp:/app/tmp
+
+  rust-service:
+    build: ../svc-rust
+    ports:
+      - "8081:8080"
+    volumes:
+      - ../svc-rust/tmp:/app/tmp
+
+  python-service:
+    build: ../svc-python
+    ports:
+      - "8082:8080"
+    volumes:
+      - ../svc-python/tmp:/app/tmp
+
+  benchmark:
+    build: .
+    volumes:
+      - ./results:/app/results
+      - ./data:/app/data
+    depends_on:
+      - go-service
+      - rust-service
+      - python-service

@@ -2,17 +2,17 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"runtime"
 	"sync"
 
-	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 
 	"service-upload/svc-go/pkg/models"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type FileProcessor struct {
 	logger *zap.SugaredLogger
@@ -29,7 +29,29 @@ func (fp *FileProcessor) ProcessFiles(ctx context.Context, files []string) ([]mo
 
 	for _, filename := range files {
 		wg.Add(1)
-		go fp.processFile(ctx, filename, &wg, results, errChan)
+		go func(file string) {
+			defer wg.Done()
+			
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				actors, err := fp.processFile(ctx, file)
+				if err != nil {
+					fp.logger.Errorw("Failed to process file", "filename", file, "error", err)
+					errChan <- err
+					return
+				}
+
+				for _, actor := range actors {
+					select {
+					case <-ctx.Done():
+						return
+					case results <- actor:
+					}
+				}
+			}
+		}(filename)
 	}
 
 	go func() {
@@ -63,37 +85,138 @@ func (fp *FileProcessor) ProcessFiles(ctx context.Context, files []string) ([]mo
 	}
 
 	if len(processingErrors) > 0 {
-		return nil, fmt.Errorf("errors processing files: %v", processingErrors)
+		return actors, fmt.Errorf("errors during file processing: %v", processingErrors)
 	}
 
 	return actors, nil
 }
 
-func (fp *FileProcessor) processFile(ctx context.Context, filename string, wg *sync.WaitGroup, results chan<- models.Actor, errChan chan<- error) {
-	defer wg.Done()
+func (fp *FileProcessor) ProcessFilesOptimized(ctx context.Context, files []string, maxConcurrency int) ([]models.Actor, error) {
+	// Validate input
+	if len(files) == 0 {
+		return nil, nil
+	}
 
-	select {
-	case <-ctx.Done():
-		return
-	default:
-		file, err := os.Open(filename)
-		if err != nil {
-			fp.logger.Errorw("Failed to open file", "filename", filename, "error", err)
-			errChan <- err
-			return
-		}
-		defer file.Close()
+	// Limit concurrency to prevent excessive goroutine creation
+	if maxConcurrency <= 0 {
+		maxConcurrency = runtime.NumCPU()
+	}
 
-		var events []models.GithubEvent
-		decoder := json.NewDecoder(file)
-		if err := decoder.Decode(&events); err != nil {
-			fp.logger.Errorw("Failed to decode JSON", "filename", filename, "error", err)
-			errChan <- err
-			return
-		}
+	// Use a buffered channel for controlled concurrency
+	semaphore := make(chan struct{}, maxConcurrency)
+	
+	// Prepare thread-safe result collection
+	var results []models.Actor
+	var resultsMutex sync.Mutex
+	var wg sync.WaitGroup
+	
+	// Error handling channel
+	errChan := make(chan error, len(files))
 
-		for _, event := range events {
-			results <- event.Actor
+	// Process files with controlled concurrency
+	for _, filename := range files {
+		select {
+		case <-ctx.Done():
+			// Context cancelled, stop processing
+			return nil, ctx.Err()
+		default:
+			// Acquire semaphore slot
+			semaphore <- struct{}{}
+			
+			wg.Add(1)
+			go func(file string) {
+				defer func() {
+					// Release semaphore slot
+					<-semaphore
+					wg.Done()
+				}()
+
+				// Recover from potential panics in file processing
+				defer func() {
+					if r := recover(); r != nil {
+						fp.logger.Errorf("Panic in file processing: %v", r)
+						errChan <- fmt.Errorf("panic processing file %s: %v", file, r)
+					}
+				}()
+
+				// Process single file
+				actors, err := fp.processFile(ctx, file)
+				if err != nil {
+					errChan <- fmt.Errorf("error processing file %s: %v", file, err)
+					return
+				}
+
+				// Thread-safe result collection
+				resultsMutex.Lock()
+				results = append(results, actors...)
+				resultsMutex.Unlock()
+			}(filename)
 		}
 	}
+
+	// Wait for all processing to complete
+	wg.Wait()
+	close(errChan)
+	close(semaphore)
+
+	// Collect and return any errors
+	var processingErrors []error
+	for err := range errChan {
+		processingErrors = append(processingErrors, err)
+	}
+
+	if len(processingErrors) > 0 {
+		return results, fmt.Errorf("errors during file processing: %v", processingErrors)
+	}
+
+	return results, nil
+}
+
+func (fp *FileProcessor) processFile(ctx context.Context, filename string) ([]models.Actor, error) {
+	// Open file with context support
+	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %s: %w", filename, err)
+	}
+	defer file.Close()
+
+	var actors []models.Actor
+	decoder := json.NewDecoder(file)
+
+	// Try to decode as an array first
+	var events []models.GithubEvent
+	if err := decoder.Decode(&events); err == nil {
+		// Successfully decoded an array
+		for _, event := range events {
+			actors = append(actors, event.Actor)
+		}
+		return actors, nil
+	}
+
+	// If array decoding fails, reset decoder
+	file.Seek(0, 0)
+	decoder = json.NewDecoder(file)
+
+	// Streaming JSON decoder to handle individual events
+	for {
+		select {
+		case <-ctx.Done():
+			return actors, ctx.Err()
+		default:
+			var event models.GithubEvent
+			if err := decoder.Decode(&event); err != nil {
+				if err == io.EOF {
+					return actors, nil
+				}
+				return actors, fmt.Errorf("JSON decoding error in %s: %w", filename, err)
+			}
+
+			// Process and collect actors
+			actors = append(actors, event.Actor)
+		}
+	}
+}
+
+func (fp *FileProcessor) ProcessEvent(event models.GithubEvent) models.Actor {
+	return event.Actor
 }

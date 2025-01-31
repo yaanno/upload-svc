@@ -5,10 +5,12 @@ go 1.22.4
 require (
 	github.com/gin-contrib/pprof v1.5.1
 	github.com/gin-gonic/gin v1.10.0
-	github.com/json-iterator/go v1.1.12
 )
 
-require go.uber.org/multierr v1.10.0 // indirect
+require (
+	github.com/json-iterator/go v1.1.12 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
+)
 
 require (
 	github.com/bytedance/sonic v1.12.4 // indirect

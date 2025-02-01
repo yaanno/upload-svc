@@ -40,7 +40,7 @@ hyperfine \
     --show-output \
     --export-markdown performance_results.md \
     --export-json performance_results.json \
-    'curl -v -X POST http://localhost:8080/upload -F "file=@'"$TEST_ARCHIVE"'"'
+    'curl  -X POST http://localhost:8080/upload -F "file=@'"$TEST_ARCHIVE"'"'
 
 # Capture system resources
 echo "Capturing system resources..."

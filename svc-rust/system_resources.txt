@@ -1,17 +1,17 @@
-Processes: 703 total, 2 running, 701 sleeping, 3644 threads 
-2025/02/01 17:10:51
-Load Avg: 2.52, 2.20, 2.32 
-CPU usage: 9.57% user, 17.12% sys, 73.29% idle 
-SharedLibs: 368M resident, 86M data, 56M linkedit.
-MemRegions: 472190 total, 5639M resident, 213M private, 2613M shared.
-PhysMem: 17G used (2412M wired, 4312M compressor), 404M unused.
-VM: 309T vsize, 5536M framework vsize, 0(0) swapins, 4(0) swapouts.
-Networks: packets: 4100172/6458M in, 3471010/5782M out.
-Disks: 18370879/655G read, 2803510/159G written.
+Processes: 552 total, 4 running, 548 sleeping, 2555 threads 
+2025/02/01 23:08:43
+Load Avg: 3.34, 2.43, 2.49 
+CPU usage: 14.46% user, 10.6% sys, 75.47% idle 
+SharedLibs: 665M resident, 166M data, 130M linkedit.
+MemRegions: 184312 total, 7372M resident, 404M private, 2164M shared.
+PhysMem: 17G used (2157M wired, 810M compressor), 178M unused.
+VM: 225T vsize, 5536M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 179700/420M in, 182937/424M out.
+Disks: 666786/25G read, 228383/14G written.
 
-PID    COMMAND          %CPU TIME     #TH #WQ #PORTS MEM   PURG CMPRS PGRP  PPID  STATE    BOOSTS   %CPU_ME %CPU_OTHRS UID FAULTS COW  MSGSENT MSGRECV SYSBSD SYSMACH CSW   PAGEINS IDLEW POWER INSTRS CYCLES JETPRI USER       #MREGS RPRVT VPRVT VSIZE KPRVT KSHRD
-99276  Microsoft Edge H 0.0  00:03.05 22  1   328    65M   0B   57M   1139  1139  sleeping *0[4658] 0.00000 0.00000    503 24641  1441 32866   14294   32352  75503   30182 10      74    0.0   0      0      180    A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
-98511  microstackshot   0.0  00:00.03 2   1   32     2097K 0B   1760K 98511 1     sleeping  0[0]    0.00000 0.00000    0   647    124  127     44      497    251     246   3       0     0.0   0      0      0      root       N/A    N/A   N/A   N/A   N/A   N/A  
-91890  CloudTelemetrySe 0.0  00:00.15 2   1   39     5169K 0B   4736K 91890 1     sleeping  0[0]    0.00000 0.00000    503 1550   154  177     43      1928   320     365   17      0     0.0   0      0      0      A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
-89176  ANECompilerServi 0.0  00:03.48 2   1   36     5041K 0B   4608K 89176 1     sleeping *0[1]    0.00000 0.00000    0   8785   155  1086    191     17719  2141    1555  4095    0     0.0   0      0      0      root       N/A    N/A   N/A   N/A   N/A   N/A  
-88641  Windsurf Helper  0.0  00:00.86 10  1   65     25M   0B   14M   70761 70887 sleeping *0[1]    0.00000 0.00000    503 6564   536  2850    88      12735  570     10296 4       55    0.0   0      0      180    A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
+PID    COMMAND         %CPU TIME     #TH #WQ #PORTS MEM   PURG CMPRS PGRP  PPID  STATE    BOOSTS %CPU_ME %CPU_OTHRS UID FAULTS COW MSGSENT MSGRECV SYSBSD SYSMACH CSW  PAGEINS IDLEW POWER INSTRS CYCLES JETPRI USER       #MREGS RPRVT VPRVT VSIZE KPRVT KSHRD
+19420  top             0.0  00:00.14 1/1 0   16     3697K 0B   0B    18235 18235 running  *0[1]  0.00000 0.00000    0   1005   87  402580  201286  2915   205545  12   2       0     0.0   0      0      180    root       N/A    N/A   N/A   N/A   N/A   N/A  
+18269  svc-rust        0.0  00:02.65 13  0   34     22M   0B   0B    18235 18235 sleeping *0[1]  0.00000 0.00000    503 58456  308 2231    101     131314 889     3054 10      0     0.0   0      0      180    A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
+18235  bash            0.0  00:00.00 1   0   11     1185K 0B   0B    18235 1362  sleeping *0[1]  0.00000 0.00000    503 462    152 45      20      438    75      22   5       0     0.0   0      0      180    A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
+18079  mdworker_shared 0.0  00:00.11 3   1   47     3201K 0B   0B    18079 1     sleeping *0[1]  0.00000 0.00000    503 1364   158 421     167     1375   497     150  8       0     0.0   0      0      0      A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
+18010  mdworker_shared 0.0  00:00.37 4   1   54     3345K 0B   0B    18010 1     sleeping *0[1]  0.00000 0.00000    503 5396   159 825     293     7303   1121    667  34      0     0.0   0      0      0      A200246910 N/A    N/A   N/A   N/A   N/A   N/A  

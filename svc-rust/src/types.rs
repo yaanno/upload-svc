@@ -11,7 +11,7 @@ pub struct GithubAction {
     pub type_field: String,
     pub actor: Actor,
     pub repo: Repo,
-    pub payload: Payload,
+    pub payload: Option<Payload>,
     pub public: bool,
     #[serde(rename = "created_at")]
     pub created_at: String,

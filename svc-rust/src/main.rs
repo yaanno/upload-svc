@@ -1,5 +1,6 @@
 mod types;
 
+use actix_multipart::Multipart;
 use actix_web::{post, App, Error, HttpResponse, HttpServer};
 use env_logger::{self, Env};
 use futures::StreamExt;
@@ -11,7 +12,6 @@ use std::path::{Path, PathBuf};
 use tracing_actix_web::TracingLogger;
 use types::{Actor, GithubActions};
 use zip::ZipArchive;
-use actix_multipart::Multipart;
 
 const JSON_DIR: &str = "./tmp/";
 const OUT_FILE: &str = "actors.json";
@@ -114,32 +114,103 @@ fn validate_and_uncompress_zip(file_path: &Path) -> Result<(), Box<dyn std::erro
 
 #[post("/upload")]
 async fn upload_zip(mut payload: Multipart) -> Result<HttpResponse, Error> {
-    
     // Create a file to save the uploaded ZIP
     let file_path = PathBuf::from(JSON_DIR.to_owned() + UPLOADED_FILE);
     
     // Ensure the directory exists
     std::fs::create_dir_all(JSON_DIR)?;
     
-    let file = File::create(&file_path)?;
+    // Open file with explicit write permissions
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(&file_path)?;
+    
     let mut writer = BufWriter::new(file);
 
-    info!("Starting to receive the uploaded ZIP file.");
+    info!("Starting to receive the uploaded ZIP file at: {}", file_path.display());
 
-    // Read the entire payload in chunks and write to file
+
+    let mut field_count = 0;
+
+    // Process each field in the multipart payload
     while let Some(field_result) = payload.next().await {
-        let mut field = field_result?;
+        field_count += 1;
         
-        // Process each field (in case of multiple parts)
-        while let Some(chunk_result) = field.next().await {
-            let chunk = chunk_result?;
-            writer.write_all(&chunk)?;
+        let mut field = field_result.map_err(|e| {
+            error!("Field processing error: {}", e);
+            actix_web::error::ErrorBadRequest(format!("Field processing error: {}", e))
+        })?;
+
+        // Get field information
+        let content_disposition = field.content_disposition();
+        let field_name = content_disposition.get_name().unwrap_or("UNKNOWN");
+        let filename = content_disposition.get_filename().unwrap_or("NOFILENAME");
+
+        info!(
+            "Field Details: 
+            - Field Number: {}
+            - Name: {}
+            - Filename: {}", 
+            field_count,
+            field_name, 
+            filename
+        );
+
+        // Only process fields with the name "file"
+        if field_name == "file" {
+            // Process each chunk in the field
+            let mut chunk_count = 0;
+            while let Some(chunk_result) = field.next().await {
+                chunk_count += 1;
+                
+                let chunk = chunk_result.map_err(|e| {
+                    error!("Chunk processing error in field #{}: {}", field_count, e);
+                    actix_web::error::ErrorBadRequest(format!("Chunk processing error: {}", e))
+                })?;
+
+                let chunk_len = chunk.len();
+                
+                // Write chunk
+                writer.write_all(&chunk).map_err(|e| {
+                    error!("Error writing chunk: {}", e);
+                    actix_web::error::ErrorInternalServerError(format!("Write error: {}", e))
+                })?;
+
+                info!(
+                    "Chunk Details: 
+                    - Field: #{} 
+                    - Chunk: #{} 
+                    - Size: {} bytes", 
+                    field_count, 
+                    chunk_count, 
+                    chunk_len
+                );
+            }
+
+            // Break after processing the first "file" field
+            break;
         }
     }
 
     // Ensure all data is written to the file
     writer.flush()?;
-    info!("Finished writing the uploaded ZIP file to disk.");
+    
+    // Verify file size
+    let file_size = std::fs::metadata(&file_path)?.len();
+    
+    info!(
+        "Upload complete. 
+        Total bytes written: {}", 
+        file_size
+    );
+
+    // Sanity checks
+    if file_size == 0 {
+        error!("Uploaded file is empty!");
+        return Err(actix_web::error::ErrorBadRequest("Uploaded file is empty"));
+    }
 
     match validate_and_uncompress_zip(&file_path) {
         Ok(_) => {
@@ -159,15 +230,16 @@ async fn upload_zip(mut payload: Multipart) -> Result<HttpResponse, Error> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init_from_env(Env::default().default_filter_or("info"));
+    // Configure logging
+    env_logger::Builder::from_env(Env::default().default_filter_or("debug"))
+        .init();
 
     HttpServer::new(|| {
         App::new()
             .wrap(TracingLogger::default())
             .service(upload_zip)
     })
-    .workers(4)
-    .bind("127.0.0.1:8080")?
+    .bind(("127.0.0.1", 8080))?
     .run()
     .await
 }

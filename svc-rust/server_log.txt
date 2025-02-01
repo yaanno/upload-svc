@@ -1,0 +1,5 @@
+    Finished `release` profile [optimized] target(s) in 0.29s
+     Running `target/release/svc-rust`
+[2025-02-01T14:59:13Z INFO  actix_server::builder] starting 11 workers
+[2025-02-01T14:59:13Z INFO  actix_server::server] Actix runtime found; starting in Actix runtime
+[2025-02-01T14:59:13Z INFO  actix_server::server] starting service: "actix-web-service-127.0.0.1:8080", workers: 11, listening on: 127.0.0.1:8080

@@ -9,6 +9,9 @@ set -e
 PROJECT_DIR="/Users/A200246910/workspace/service-upload/svc-rust"
 TEST_ARCHIVE="$PROJECT_DIR/ArchiveLarge.zip"
 
+# Kill any existing processes using port 8080
+lsof -ti:8080 | xargs -r kill -9 || true
+
 # Ensure test archive exists
 if [ ! -f "$TEST_ARCHIVE" ]; then
     echo "Generating test archive..."
@@ -32,19 +35,19 @@ sleep 2
 echo "Running performance benchmarks..."
 hyperfine \
     --warmup 3 \
-    --min-runs 10 \
-    --max-runs 50 \
+    --min-runs 1 \
+    --max-runs 1 \
     --show-output \
     --export-markdown performance_results.md \
     --export-json performance_results.json \
-    'curl -X POST http://localhost:8080/upload -F "file='"$TEST_ARCHIVE"'"'
+    'curl -v -X POST http://localhost:8080/upload -F "file=@'"$TEST_ARCHIVE"'"'
 
 # Capture system resources
 echo "Capturing system resources..."
 top -l 1 -n 5 > system_resources.txt
 
 # Kill the service
-kill $SERVICE_PID
+kill $SERVICE_PID || true
 
 # Display results
 echo "Performance testing complete."

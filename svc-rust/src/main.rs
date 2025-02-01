@@ -1,7 +1,8 @@
 mod types;
+mod config;
 
 use actix_multipart::Multipart;
-use actix_web::{post, App, Error, HttpResponse, HttpServer};
+use actix_web::{post, web, App, Error, HttpResponse, HttpServer};
 use env_logger::{self, Env};
 use futures::StreamExt;
 use log::error;
@@ -13,10 +14,6 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use types::{Actor, GithubActions};
 use zip::ZipArchive;
-
-const JSON_DIR: &str = "./tmp/";
-const OUT_FILE: &str = "actors.json";
-const UPLOADED_FILE: &str = "uploaded.zip";
 
 fn process_json_file(file_path: &Path) -> Result<Vec<Actor>, Box<dyn std::error::Error>> {
     let file = File::open(file_path)?;
@@ -32,9 +29,9 @@ fn process_json_file(file_path: &Path) -> Result<Vec<Actor>, Box<dyn std::error:
     Ok(actors)
 }
 
-fn process_json_dir() -> Result<(), Box<dyn std::error::Error>> {
+fn process_json_dir(config: web::Data<config::AppConfig>) -> Result<(), Box<dyn std::error::Error>> {
     //info!("Starting processing the json files");
-    let nested_actors: Vec<Vec<Actor>> = std::fs::read_dir(Path::new(JSON_DIR))?
+    let nested_actors: Vec<Vec<Actor>> = std::fs::read_dir(Path::new(config.json_dir.as_str()))?
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.path().file_name().and_then(|s| s.to_str()) != Some("actors.json"))
         .filter(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("json"))
@@ -42,7 +39,7 @@ fn process_json_dir() -> Result<(), Box<dyn std::error::Error>> {
         .collect::<Result<Vec<_>, _>>()?;
     let actors: Vec<Actor> = nested_actors.into_iter().flatten().collect();
 
-    let path = PathBuf::from(JSON_DIR.to_owned() + OUT_FILE);
+    let path = PathBuf::from(config.json_dir.to_owned() + config.upload_file_name.as_str());
     let actors_json = serde_json::to_string(&actors)?;
     let file = File::create(path)?;
 
@@ -102,12 +99,12 @@ fn validate_and_uncompress_zip(file_path: &Path) -> Result<(), Box<dyn std::erro
 }
 
 #[post("/upload")]
-async fn upload_zip(mut payload: Multipart) -> Result<HttpResponse, Error> {
+async fn upload_zip(config: web::Data<config::AppConfig>, mut payload: Multipart) -> Result<HttpResponse, Error> {
     // Create a file to save the uploaded ZIP
-    let file_path = PathBuf::from(JSON_DIR.to_owned() + UPLOADED_FILE);
+    let file_path = PathBuf::from(config.json_dir.to_owned() + config.upload_file_name.as_str());
 
     // Ensure the directory exists
-    std::fs::create_dir_all(JSON_DIR)?;
+    std::fs::create_dir_all(config.json_dir.as_str())?;
 
     // Open file with explicit write permissions
     let file = std::fs::OpenOptions::new()
@@ -169,7 +166,7 @@ async fn upload_zip(mut payload: Multipart) -> Result<HttpResponse, Error> {
 
     match validate_and_uncompress_zip(&file_path) {
         Ok(_) => {
-            process_json_dir()?;
+            process_json_dir(web::Data::new(config::AppConfig::default()))?;
 
             Ok(HttpResponse::Ok().json({
                 "ok";
@@ -193,6 +190,7 @@ struct ProcessingStats {
 }
 
 fn process_large_json_stream(
+    config: &config::AppConfig,
     file_path: &Path,
     chunk_size: usize,
     max_file_size_mb: usize,
@@ -217,7 +215,7 @@ fn process_large_json_stream(
     let mut processed_records = 0;
     let mut error_records = 0;
     let mut actors = Vec::with_capacity(chunk_size);
-    let output_path = PathBuf::from(JSON_DIR.to_owned() + "streamed_actors.json");
+    let output_path = PathBuf::from(config.json_dir.to_owned() + config.upload_file_name.as_str());
     let mut output_file = File::create(&output_path)?;
 
     for (index, record_result) in stream.enumerate() {
@@ -262,11 +260,11 @@ fn process_large_json_stream(
 }
 
 #[post("/upload_large")]
-async fn upload_large_json(mut payload: Multipart) -> Result<HttpResponse, Error> {
-    let file_path = PathBuf::from(JSON_DIR.to_owned() + UPLOADED_FILE);
+async fn upload_large_json(config: web::Data<config::AppConfig>, mut payload: Multipart) -> Result<HttpResponse, Error> {
+    let file_path = PathBuf::from(config.json_dir.to_owned() + config.upload_file_name.as_str());
 
     // Ensure directory exists
-    std::fs::create_dir_all(JSON_DIR)?;
+    std::fs::create_dir_all(&config.json_dir)?;
 
     // Open file with explicit write permissions
     let file = std::fs::OpenOptions::new()
@@ -304,7 +302,7 @@ async fn upload_large_json(mut payload: Multipart) -> Result<HttpResponse, Error
     writer.flush()?;
 
     // Process large file with streaming
-    match process_large_json_stream(&file_path, 1000, 500) {
+    match process_large_json_stream(&config, &file_path, 1000, 500) {
         Ok(stats) => Ok(HttpResponse::Ok().json(stats)),
         Err(e) => {
             error!("Error processing large file: {}", e);
@@ -315,16 +313,22 @@ async fn upload_large_json(mut payload: Multipart) -> Result<HttpResponse, Error
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let config = config::AppConfig::default();
+    config.create_dirs().unwrap();
+
     // Configure logging
     env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
 
-    HttpServer::new(|| {
+    let config_clone = config.clone(); // Create a clone for the bind method
+
+    HttpServer::new(move || {
         App::new()
             // .wrap(TracingLogger::default())
+            .app_data(web::Data::new(config.clone()))
             .service(upload_zip)
             .service(upload_large_json)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind((config_clone.server_host.as_str(), config_clone.server_port))?
     .run()
     .await
 }

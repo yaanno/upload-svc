@@ -1,18 +1,17 @@
 mod types;
 
-use actix_web::{post, web, App, Error, HttpResponse, HttpServer};
+use actix_web::{post, App, Error, HttpResponse, HttpServer};
 use env_logger::{self, Env};
 use futures::StreamExt;
 use log::{error, info};
-
 use serde_json::Deserializer;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::time::Instant;
 use tracing_actix_web::TracingLogger;
 use types::{Actor, GithubActions};
 use zip::ZipArchive;
+use actix_multipart::Multipart;
 
 const JSON_DIR: &str = "./tmp/";
 const OUT_FILE: &str = "actors.json";
@@ -114,19 +113,28 @@ fn validate_and_uncompress_zip(file_path: &Path) -> Result<(), Box<dyn std::erro
 }
 
 #[post("/upload")]
-async fn upload_zip(mut payload: web::Payload) -> Result<HttpResponse, Error> {
-    let start_time = Instant::now();
+async fn upload_zip(mut payload: Multipart) -> Result<HttpResponse, Error> {
+    
     // Create a file to save the uploaded ZIP
     let file_path = PathBuf::from(JSON_DIR.to_owned() + UPLOADED_FILE);
+    
+    // Ensure the directory exists
+    std::fs::create_dir_all(JSON_DIR)?;
+    
     let file = File::create(&file_path)?;
     let mut writer = BufWriter::new(file);
 
     info!("Starting to receive the uploaded ZIP file.");
 
-    // Stream the payload and write to the file in chunks
-    while let Some(chunk) = payload.next().await {
-        let data = chunk?;
-        writer.write_all(&data)?;
+    // Read the entire payload in chunks and write to file
+    while let Some(field_result) = payload.next().await {
+        let mut field = field_result?;
+        
+        // Process each field (in case of multiple parts)
+        while let Some(chunk_result) = field.next().await {
+            let chunk = chunk_result?;
+            writer.write_all(&chunk)?;
+        }
     }
 
     // Ensure all data is written to the file
@@ -138,19 +146,17 @@ async fn upload_zip(mut payload: web::Payload) -> Result<HttpResponse, Error> {
             process_json_dir()?;
             info!(
                 "Files processed. Output written to: {}",
-                OUT_FILE.to_owned()
+                JSON_DIR.to_owned() + OUT_FILE
             );
-            let end_time = Instant::now();
-            let elapsed_time = end_time - start_time;
-            info!("Elapsed time: {:?}", elapsed_time);
-            Ok(HttpResponse::Ok().body("File uploaded and uncompressed successfully"))
+            Ok(HttpResponse::Ok().body("ZIP file uploaded and processed successfully"))
         }
         Err(e) => {
-            error!("File processing failed: {:?}", e);
-            Ok(HttpResponse::BadRequest().body("File processing failed"))
+            error!("Error processing ZIP file: {}", e);
+            Ok(HttpResponse::BadRequest().body(format!("Error processing ZIP file: {}", e)))
         }
     }
 }
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("info"));

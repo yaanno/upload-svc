@@ -35,8 +35,8 @@ sleep 2
 echo "Running performance benchmarks..."
 hyperfine \
     --warmup 3 \
-    --min-runs 1 \
-    --max-runs 1 \
+    --min-runs 5 \
+    --max-runs 50 \
     --show-output \
     --export-markdown performance_results.md \
     --export-json performance_results.json \

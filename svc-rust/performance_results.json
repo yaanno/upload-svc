@@ -2,15 +2,15 @@
   "results": [
     {
       "command": "curl -v -X POST http://localhost:8080/upload -F \"file=@/Users/A200246910/workspace/service-upload/svc-rust/ArchiveLarge.zip\"",
-      "mean": 0.79957241064,
+      "mean": 0.38045331358000006,
       "stddev": null,
-      "median": 0.79957241064,
-      "user": 0.00264336,
-      "system": 0.00458112,
-      "min": 0.79957241064,
-      "max": 0.79957241064,
+      "median": 0.38045331358000006,
+      "user": 0.0021753,
+      "system": 0.0049009,
+      "min": 0.38045331358000006,
+      "max": 0.38045331358000006,
       "times": [
-        0.79957241064
+        0.38045331358000006
       ],
       "exit_codes": [
         0

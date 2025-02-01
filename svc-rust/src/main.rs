@@ -5,10 +5,12 @@ use actix_web::{post, App, Error, HttpResponse, HttpServer};
 use env_logger::{self, Env};
 use futures::StreamExt;
 use log::{error, info};
-use serde_json::Deserializer;
+use serde::Serialize;
+use serde_json;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 use tracing_actix_web::TracingLogger;
 use types::{Actor, GithubActions};
 use zip::ZipArchive;
@@ -21,21 +23,14 @@ fn process_json_file(file_path: &Path) -> Result<Vec<Actor>, Box<dyn std::error:
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
 
-    // Create a streaming deserializer
-    let stream = Deserializer::from_reader(reader).into_iter::<GithubActions>();
-    let mut actors = Vec::new();
-    for record in stream {
-        match record {
-            Ok(record) => {
-                actors.extend(record.iter().map(|item| item.actor.clone()));
-                info!("Json file processed: {}", &file_path.display());
-            }
-            Err(e) => {
-                error!("Error parsing record: {}", e);
-            }
-        }
-    }
+    // Use serde_json to parse the entire file as a JSON array or stream
+    let records: Vec<GithubActions> = serde_json::from_reader(reader)?;
+    let actors: Vec<Actor> = records
+        .into_iter()
+        .filter_map(|record| record.actor)
+        .collect();
 
+    info!("Json file processed: {} - {} actors extracted", &file_path.display(), actors.len());
     Ok(actors)
 }
 
@@ -43,6 +38,7 @@ fn process_json_dir() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting processing the json files");
     let nested_actors: Vec<Vec<Actor>> = std::fs::read_dir(Path::new(JSON_DIR))?
         .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.path().file_name().and_then(|s| s.to_str()) != Some("actors.json"))
         .filter(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("json"))
         .map(|entry| process_json_file(&entry.path()))
         .collect::<Result<Vec<_>, _>>()?;
@@ -228,6 +224,139 @@ async fn upload_zip(mut payload: Multipart) -> Result<HttpResponse, Error> {
     }
 }
 
+#[derive(Debug, Serialize)]
+struct ProcessingStats {
+    total_records: usize,
+    processed_records: usize,
+    error_records: usize,
+    processing_time: Duration,
+    output_file: PathBuf,
+}
+
+fn process_large_json_stream(
+    file_path: &Path, 
+    chunk_size: usize, 
+    max_file_size_mb: usize
+) -> Result<ProcessingStats, Box<dyn std::error::Error>> {
+    // Validate file size before processing
+    let metadata = std::fs::metadata(file_path)?;
+    let file_size_mb = metadata.len() as usize / (1024 * 1024);
+    
+    if file_size_mb > max_file_size_mb {
+        return Err(format!(
+            "File too large. Max allowed: {}MB, Current: {}MB", 
+            max_file_size_mb, 
+            file_size_mb
+        ).into());
+    }
+
+    let file = File::open(file_path)?;
+    let reader = BufReader::new(file);
+    let stream = serde_json::Deserializer::from_reader(reader).into_iter::<GithubActions>();
+
+    let start_time = Instant::now();
+    let mut processed_records = 0;
+    let mut error_records = 0;
+    let mut actors = Vec::with_capacity(chunk_size);
+    let output_path = PathBuf::from(JSON_DIR.to_owned() + "streamed_actors.json");
+    let mut output_file = File::create(&output_path)?;
+
+    for (index, record_result) in stream.enumerate() {
+        match record_result {
+            Ok(record) => {
+                // Process record
+                if let Some(actor) = record.actor {
+                    actors.push(actor);
+                    processed_records += 1;
+                }
+
+                // Batch processing
+                if actors.len() >= chunk_size {
+                    let batch_json = serde_json::to_string(&actors)?;
+                    output_file.write_all(batch_json.as_bytes())?;
+                    output_file.write_all(b"\n")?; // Newline for batch separation
+                    actors.clear();
+                }
+            }
+            Err(e) => {
+                error_records += 1;
+                error!("Error parsing record at index {}: {}", index, e);
+            }
+        }
+    }
+
+    // Process any remaining records
+    if !actors.is_empty() {
+        let batch_json = serde_json::to_string(&actors)?;
+        output_file.write_all(batch_json.as_bytes())?;
+    }
+
+    let duration = start_time.elapsed();
+
+    Ok(ProcessingStats {
+        total_records: processed_records + error_records,
+        processed_records,
+        error_records,
+        processing_time: duration,
+        output_file: output_path,
+    })
+}
+
+#[post("/upload_large")]
+async fn upload_large_json(mut payload: Multipart) -> Result<HttpResponse, Error> {
+    let file_path = PathBuf::from(JSON_DIR.to_owned() + UPLOADED_FILE);
+    
+    // Ensure directory exists
+    std::fs::create_dir_all(JSON_DIR)?;
+    
+    // Open file with explicit write permissions
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(&file_path)?;
+    
+    let mut writer = BufWriter::new(file);
+
+    // Process multipart upload
+    while let Some(field_result) = payload.next().await {
+        let mut field = field_result.map_err(|e| {
+            error!("Field processing error: {}", e);
+            actix_web::error::ErrorBadRequest(format!("Field processing error: {}", e))
+        })?;
+
+        // Only process "file" fields
+        let content_disposition = field.content_disposition();
+        let field_name = content_disposition.get_name().unwrap_or("UNKNOWN");
+        
+        if field_name == "file" {
+            while let Some(chunk_result) = field.next().await {
+                let chunk = chunk_result.map_err(|e| {
+                    error!("Chunk processing error: {}", e);
+                    actix_web::error::ErrorBadRequest(format!("Chunk processing error: {}", e))
+                })?;
+
+                writer.write_all(&chunk)?;
+            }
+            break; // Process only first file field
+        }
+    }
+
+    writer.flush()?;
+
+    // Process large file with streaming
+    match process_large_json_stream(&file_path, 1000, 500) {
+        Ok(stats) => {
+            info!("Large file processed successfully: {:?}", stats);
+            Ok(HttpResponse::Ok().json(stats))
+        }
+        Err(e) => {
+            error!("Error processing large file: {}", e);
+            Ok(HttpResponse::BadRequest().body(format!("Processing error: {}", e)))
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // Configure logging
@@ -238,6 +367,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(TracingLogger::default())
             .service(upload_zip)
+            .service(upload_large_json)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

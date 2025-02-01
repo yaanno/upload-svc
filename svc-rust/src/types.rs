@@ -1,75 +1,63 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde::{Deserialize, Serialize, Deserializer};
 
-pub type GithubActions = Vec<GithubAction>;
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GithubAction {
-    pub id: String,
-    #[serde(rename = "type")]
-    pub type_field: String,
-    pub actor: Actor,
-    pub repo: Repo,
-    pub payload: Option<Payload>,
-    pub public: bool,
-    #[serde(rename = "created_at")]
-    pub created_at: String,
-    pub org: Option<Org>,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Actor {
-    pub id: i64,
-    pub login: String,
-    #[serde(rename = "gravatar_id")]
-    pub gravatar_id: String,
-    pub url: String,
+    #[serde(deserialize_with = "deserialize_id")]
+    pub id: Option<String>,
+    pub login: Option<String>,
+    pub display_login: Option<String>,
+    pub gravatar_id: Option<String>,
+    pub url: Option<String>,
     #[serde(rename = "avatar_url")]
-    pub avatar_url: String,
+    pub avatar_url: Option<String>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+fn deserialize_id<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum IdType {
+        String(String),
+        Integer(i64),
+    }
+
+    let id = IdType::deserialize(deserializer)?;
+    Ok(match id {
+        IdType::String(s) => Some(s),
+        IdType::Integer(i) => Some(i.to_string()),
+    })
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Repo {
-    pub id: i64,
-    pub name: String,
-    pub url: String,
+    pub id: Option<u64>,
+    pub name: Option<String>,
+    pub url: Option<String>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Payload {
     #[serde(rename = "ref")]
     pub ref_field: Option<String>,
-    #[serde(rename = "ref_type")]
     pub ref_type: Option<String>,
-    #[serde(rename = "master_branch")]
     pub master_branch: Option<String>,
     pub description: Option<String>,
-    #[serde(rename = "pusher_type")]
     pub pusher_type: Option<String>,
-    #[serde(rename = "push_id")]
-    pub push_id: Option<i64>,
-    pub size: Option<i64>,
-    #[serde(rename = "distinct_size")]
-    pub distinct_size: Option<i64>,
-    pub head: Option<String>,
-    pub before: Option<String>,
-    #[serde(default)]
-    pub commits: Vec<Commit>,
-    pub action: Option<String>,
-    pub release: Option<Release>,
-    pub number: Option<i64>,
-    #[serde(rename = "pull_request")]
-    pub pull_request: Option<PullRequest>,
-    pub issue: Option<Issue2>,
-    pub forkee: Option<Forkee>,
-    #[serde(default)]
-    pub pages: Vec<Page>,
-    pub comment: Option<Comment>,
-    pub member: Option<User>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct GithubActions {
+    pub id: Option<String>,
+    #[serde(rename = "type")]
+    pub type_field: Option<String>,
+    pub actor: Option<Actor>,
+    pub repo: Option<Repo>,
+    pub payload: Option<Payload>,
+    pub public: Option<bool>,
+    #[serde(rename = "created_at")]
+    pub created_at: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -242,27 +230,27 @@ pub struct User {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Milestone {
-    pub url: String,
+    pub url: Option<String>,
     #[serde(rename = "labels_url")]
-    pub labels_url: String,
-    pub id: i64,
-    pub number: i64,
-    pub title: String,
+    pub labels_url: Option<String>,
+    pub id: Option<u64>,
+    pub number: Option<u64>,
+    pub state: Option<String>,
+    pub title: Option<String>,
     pub description: Option<String>,
-    pub creator: User,
+    pub creator: Option<User>,
     #[serde(rename = "open_issues")]
-    pub open_issues: i64,
+    pub open_issues: Option<u64>,
     #[serde(rename = "closed_issues")]
-    pub closed_issues: i64,
-    pub state: String,
+    pub closed_issues: Option<u64>,
     #[serde(rename = "created_at")]
-    pub created_at: String,
+    pub created_at: Option<String>,
     #[serde(rename = "updated_at")]
-    pub updated_at: String,
+    pub updated_at: Option<String>,
+    #[serde(rename = "closed_at")]
+    pub closed_at: Option<String>,
     #[serde(rename = "due_on")]
     pub due_on: Option<String>,
-    #[serde(rename = "closed_at")]
-    pub closed_at: Value,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -392,7 +380,7 @@ pub struct Repo2 {
     #[serde(rename = "forks_count")]
     pub forks_count: i64,
     #[serde(rename = "mirror_url")]
-    pub mirror_url: Value,
+    pub mirror_url: Option<String>,
     #[serde(rename = "open_issues_count")]
     pub open_issues_count: i64,
     pub forks: i64,
@@ -800,7 +788,7 @@ pub struct Forkee {
     #[serde(rename = "forks_count")]
     pub forks_count: i64,
     #[serde(rename = "mirror_url")]
-    pub mirror_url: Value,
+    pub mirror_url: Option<String>,
     #[serde(rename = "open_issues_count")]
     pub open_issues_count: i64,
     pub forks: i64,
@@ -818,7 +806,7 @@ pub struct Page {
     #[serde(rename = "page_name")]
     pub page_name: String,
     pub title: String,
-    pub summary: Value,
+    pub summary: Option<String>,
     pub action: String,
     pub sha: String,
     #[serde(rename = "html_url")]

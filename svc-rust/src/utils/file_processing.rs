@@ -5,6 +5,8 @@ use futures::StreamExt;
 use zip::ZipArchive;
 use std::io::{BufReader, Write};
 
+use crate::config::AppConfig;
+
 pub async fn save_multipart_file(mut payload: Multipart, mut file: File) -> Result<(), Box<dyn std::error::Error>> {
     while let Some(item) = payload.next().await {
         let mut field = item?;
@@ -16,7 +18,10 @@ pub async fn save_multipart_file(mut payload: Multipart, mut file: File) -> Resu
     Ok(())
 }
 
-pub async fn validate_and_uncompress_zip(file_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn validate_and_uncompress_zip(
+    config: &AppConfig,
+    file_path: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Check if the file exists and is readable
     if !file_path.exists() {
         return Err("File does not exist".into());
@@ -55,7 +60,7 @@ pub async fn validate_and_uncompress_zip(file_path: &Path) -> Result<(), Box<dyn
                     std::fs::create_dir_all(p)?;
                 }
             }
-            let tmp = PathBuf::from("./tmp/");
+            let tmp = PathBuf::from(config.json_dir.to_owned());
             let mut outfile = File::create(tmp.join(&outpath))?;
             std::io::copy(&mut file, &mut outfile)?;
         }

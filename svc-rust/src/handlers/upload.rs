@@ -25,7 +25,7 @@ async fn handle_upload(
         .await
         .map_err(actix_web::error::ErrorBadRequest)?;
 
-    match file_processing::validate_and_uncompress_zip(&file_path).await {
+    match file_processing::validate_and_uncompress_zip(&config, &file_path).await {
         Ok(_) => {
             process_fn(web::Data::new(AppConfig::default()))
                 .map_err(|e| actix_web::error::ErrorInternalServerError(e.to_string()))?;

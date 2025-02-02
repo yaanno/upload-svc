@@ -10,7 +10,7 @@ use tracing::error;
 
 use crate::{
     config,
-    types::{Actor, GithubActions},
+    types::{Actor, Event},
 };
 
 #[derive(Debug, Serialize)]
@@ -29,7 +29,7 @@ pub(crate) fn process_json_file(
     let _reader = BufReader::new(file);
 
     // Use serde_json to parse the entire file as a JSON array or stream
-    let records: Vec<GithubActions> = serde_json::from_reader(_reader)?;
+    let records: Vec<Event> = serde_json::from_reader(_reader)?;
     let actors: Vec<Actor> = records
         .into_iter()
         .filter_map(|record| record.actor)
@@ -41,7 +41,6 @@ pub(crate) fn process_json_file(
 pub fn process_large_json_stream(
     config: &config::AppConfig,
     file_path: &Path,
-    _chunk_size: usize,
     max_file_size_mb: usize,
 ) -> Result<ProcessingStats, Box<dyn std::error::Error>> {
     // Validate file size before processing
@@ -68,7 +67,7 @@ pub fn process_large_json_stream(
         let start_time = Instant::now();
         let mut processed_records = 0;
         let mut error_records = 0;
-        let output_path = PathBuf::from(config.json_dir.to_owned() + "actors.json");
+        let output_path = PathBuf::from(config.json_dir.to_owned() + "actors-stream.json");
         let mut output_file = File::create(&output_path)?;
 
         // Write opening bracket for JSON array
@@ -118,7 +117,8 @@ pub fn process_large_json_stream(
         })
     } else {
         // If not a JSON array, try parsing as JSON stream
-        let stream = serde_json::Deserializer::from_str(&file_contents).into_iter::<serde_json::Value>();
+        let stream =
+            serde_json::Deserializer::from_str(&file_contents).into_iter::<serde_json::Value>();
 
         let start_time = Instant::now();
         let mut processed_records = 0;

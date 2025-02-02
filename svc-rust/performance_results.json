@@ -1,18 +1,42 @@
 {
   "results": [
     {
-      "command": "curl  -X POST http://localhost:8080/upload -F \"file=@/Users/A200246910/workspace/service-upload/svc-rust/ArchiveLarge.zip\"",
-      "mean": 0.28162223302,
-      "stddev": null,
-      "median": 0.28162223302,
-      "user": 0.0026301600000000003,
-      "system": 0.004360920000000001,
-      "min": 0.28162223302,
-      "max": 0.28162223302,
+      "command": "curl -X POST http://localhost:8080/upload -F \"file=@/Users/A200246910/workspace/service-upload/svc-rust/ArchiveLarge.zip\"",
+      "mean": 0.27011059191333336,
+      "stddev": 0.030739623376441177,
+      "median": 0.26468456458,
+      "user": 0.003568713333333333,
+      "system": 0.0081069,
+      "min": 0.24244527258,
+      "max": 0.30320193858,
       "times": [
-        0.28162223302
+        0.30320193858,
+        0.24244527258,
+        0.26468456458
       ],
       "exit_codes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "command": "curl -X POST http://localhost:8080/upload_large -F \"file=@/Users/A200246910/workspace/service-upload/svc-rust/ArchiveLarge.zip\"",
+      "mean": 0.47341117558000007,
+      "stddev": 0.010798816641631973,
+      "median": 0.47128368958,
+      "user": 0.0023370466666666665,
+      "system": 0.0042359,
+      "min": 0.46383443958000004,
+      "max": 0.48511539758,
+      "times": [
+        0.46383443958000004,
+        0.47128368958,
+        0.48511539758
+      ],
+      "exit_codes": [
+        0,
+        0,
         0
       ]
     }

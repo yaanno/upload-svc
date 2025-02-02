@@ -14,6 +14,9 @@ lsof -ti:8080 | xargs -r kill -9 || true
 
 rm -f performance_results.md performance_results.json system_resources.txt
 rm -rf "$PROJECT_DIR/tmp"
+rm -rf "$PROJECT_DIR/tmp-large"
+rm -rf "$PROJECT_DIR/uploads"
+rm -rf "$PROJECT_DIR/uploads-large"
 
 
 # Ensure test archive exists

@@ -1,17 +1,17 @@
-Processes: 585 total, 3 running, 582 sleeping, 3013 threads 
-2025/02/02 15:06:45
-Load Avg: 2.36, 1.76, 1.68 
-CPU usage: 11.95% user, 9.5% sys, 78.98% idle 
-SharedLibs: 521M resident, 79M data, 61M linkedit.
-MemRegions: 339084 total, 6336M resident, 250M private, 3310M shared.
-PhysMem: 17G used (3039M wired, 2595M compressor), 184M unused.
-VM: 252T vsize, 5536M framework vsize, 8291181(0) swapins, 9506901(0) swapouts.
-Networks: packets: 2896481/10G in, 3189806/11G out.
-Disks: 14216060/594G read, 4353186/313G written.
+Processes: 482 total, 4 running, 478 sleeping, 2772 threads 
+2025/02/02 16:09:23
+Load Avg: 2.30, 2.26, 2.11 
+CPU usage: 12.8% user, 9.52% sys, 78.38% idle 
+SharedLibs: 347M resident, 89M data, 64M linkedit.
+MemRegions: 341983 total, 5624M resident, 214M private, 2841M shared.
+PhysMem: 17G used (3055M wired, 3379M compressor), 456M unused.
+VM: 212T vsize, 5536M framework vsize, 8291228(0) swapins, 9506901(0) swapouts.
+Networks: packets: 3392995/14G in, 3693546/14G out.
+Disks: 14760202/619G read, 4535090/328G written.
 
-PID    COMMAND          %CPU TIME     #TH #WQ #PORTS MEM   PURG CMPRS PGRP  PPID STATE    BOOSTS %CPU_ME %CPU_OTHRS UID FAULTS COW MSGSENT MSGRECV SYSBSD SYSMACH CSW PAGEINS IDLEW POWER INSTRS CYCLES JETPRI USER       #MREGS RPRVT VPRVT VSIZE KPRVT KSHRD
-98491  assistant_cdmd   0.0  00:00.15 2   1   58     4945K 0B   4464K 98491 1    sleeping *0[2]  0.00000 0.00000    503 1993   200 243     72      1152   396     442 335     0     0.0   0      0      0      A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
-98212  countryd         0.0  00:00.24 2   1   50     3393K 0B   2976K 98212 1    sleeping *0[2]  0.00000 0.00000    0   1648   141 368     99      2340   391     573 17      0     0.0   0      0      0      root       N/A    N/A   N/A   N/A   N/A   N/A  
-98054  logd_helper      0.0  00:00.04 2   1   20     2065K 0B   1776K 98054 1    sleeping *0[1]  0.00000 0.00000    0   701    122 73      32      408    143     49  2       0     0.0   0      0      0      root       N/A    N/A   N/A   N/A   N/A   N/A  
-98017  AMPArtworkAgent  0.0  00:00.06 2   1   42     4225K 0B   3808K 98017 1    sleeping  0[0]  0.00000 0.00000    503 1242   171 206     69      1618   392     232 29      0     0.0   0      0      0      A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
-98014  com.apple.BKAgen 0.0  00:00.04 2   1   49     3697K 0B   3280K 98014 1    sleeping  0[0]  0.00000 0.00000    503 1240   159 226     56      1540   379     268 25      0     0.0   0      0      0      A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
+PID    COMMAND          %CPU TIME     #TH #WQ #PORTS MEM   PURG CMPRS PGRP  PPID STATE    BOOSTS %CPU_ME %CPU_OTHRS UID FAULTS COW MSGSENT MSGRECV SYSBSD SYSMACH CSW   PAGEINS IDLEW POWER INSTRS CYCLES JETPRI USER       #MREGS RPRVT VPRVT VSIZE KPRVT KSHRD
+98212  countryd         0.0  00:00.24 2   1   50     3393K 0B   2992K 98212 1    sleeping *0[2]  0.00000 0.00000    0   1648   141 368     99      2340   391     573   17      0     0.0   0      0      0      root       N/A    N/A   N/A   N/A   N/A   N/A  
+98009  fairplayd        0.0  00:00.20 2   1   31     2689K 0B   2416K 98009 1    sleeping *0[1]  0.00000 0.00000    265 2248   159 118     35      438    344     558   1205    0     0.0   0      0      40     _fpsd      N/A    N/A   N/A   N/A   N/A   N/A  
+98006  AMPLibraryAgent  0.0  00:01.15 5   1   124    9010K 0B   6064K 98006 1    sleeping *0[43] 0.00000 0.00000    503 6100   277 2411    858     33594  9666    13943 638     34    0.0   0      0      40     A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
+98005  media-indexer    0.0  00:00.06 2   1   54     4161K 0B   2560K 98005 1    sleeping *0[32] 0.00000 0.00000    503 1868   170 318     121     1288   765     421   21      0     0.0   0      0      0      A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
+97988  keychainsharingm 0.0  00:00.06 2   1   43     5313K 0B   4928K 97988 1    sleeping *0[6]  0.00000 0.00000    503 1614   148 190     55      1016   366     263   53      0     0.0   0      0      0      A200246910 N/A    N/A   N/A   N/A   N/A   N/A  

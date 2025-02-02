@@ -1,3 +1,7 @@
 /target
 tmp
 .DS_Store
+tmp*
+uploads*
+performance*
+system_resources*

@@ -11,9 +11,21 @@ async fn handle_upload(
     config: web::Data<AppConfig>,
     payload: Multipart,
     process_fn: impl Fn(web::Data<AppConfig>) -> Result<(), Box<dyn std::error::Error>>,
+    is_large_upload: bool,
 ) -> Result<HttpResponse, Error> {
-    let file_path = PathBuf::from(config.json_dir.to_owned() + &config.upload_file_name);
-    std::fs::create_dir_all(&config.json_dir)?;
+    // Choose appropriate directories based on upload type
+    let (upload_dir, json_dir) = if is_large_upload {
+        (&config.large_upload_dir, &config.large_json_dir)
+    } else {
+        (&config.upload_dir, &config.json_dir)
+    };
+
+    // Create directories if they don't exist
+    std::fs::create_dir_all(upload_dir)?;
+    std::fs::create_dir_all(json_dir)?;
+
+    // Create file path using the chosen upload directory
+    let file_path = PathBuf::from(upload_dir.to_owned() + &config.upload_file_name);
 
     let file = std::fs::OpenOptions::new()
         .write(true)
@@ -25,9 +37,16 @@ async fn handle_upload(
         .await
         .map_err(actix_web::error::ErrorBadRequest)?;
 
-    match file_processing::validate_and_uncompress_zip(&config, &file_path).await {
+    // Create a new config with the appropriate directories for processing
+    let processing_config = AppConfig {
+        upload_dir: upload_dir.clone(),
+        json_dir: json_dir.clone(),
+        ..config.as_ref().clone()
+    };
+
+    match file_processing::validate_and_uncompress_zip(&processing_config, &file_path).await {
         Ok(_) => {
-            process_fn(web::Data::new(AppConfig::default()))
+            process_fn(web::Data::new(processing_config))
                 .map_err(|e| actix_web::error::ErrorInternalServerError(e.to_string()))?;
             Ok(HttpResponse::Ok().json(json!({"status": "ok"})))
         }
@@ -45,13 +64,13 @@ pub async fn upload_zip(
     config: web::Data<AppConfig>,
     payload: Multipart,
 ) -> Result<HttpResponse, Error> {
-    handle_upload(config, payload, processing::process_json_dir).await
+    handle_upload(config, payload, processing::process_json_dir, false).await
 }
 
 #[post("/upload_large")]
 pub async fn upload_large_zip(
-    config: web::Data<config::AppConfig>,
+    config: web::Data<AppConfig>,
     payload: Multipart,
 ) -> Result<HttpResponse, Error> {
-    handle_upload(config, payload, processing::process_large_json_dir).await
+    handle_upload(config, payload, processing::process_large_json_dir, true).await
 }

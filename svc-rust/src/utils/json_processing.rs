@@ -16,15 +16,28 @@ pub(crate) fn process_json_file(
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
 
-    // Use serde_json to parse the entire file as a JSON array or stream
+    // Use serde_json to parse the entire file as a JSON array
     let records: Vec<Event> = serde_json::from_reader(reader)?;
     let actors: Vec<Actor> = records
         .into_iter()
         .filter_map(|record| record.actor)
         .collect();
 
+    // Prepare output file path
     let output_path = PathBuf::from(config.json_dir.to_owned() + "actors.json");
-    std::fs::write(output_path, serde_json::to_string(&actors).unwrap())?;
+
+    // Open file for writing
+    let mut output_file = File::create(&output_path)?;
+
+    // Write JSON string to file
+    let formatted_json = serde_json::to_string_pretty(&actors)
+        .map_err(|e| format!("Failed to serialize actors: {}", e))?;
+    
+    // Write the formatted JSON string
+    output_file.write_all(formatted_json.as_bytes())
+        .map_err(|e| format!("Failed to write to file {}: {}", output_path.display(), e))?;
+    
+    output_file.flush()?;
 
     Ok(actors)
 }

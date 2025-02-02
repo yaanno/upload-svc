@@ -78,7 +78,7 @@ fn process_large_directory(
     config: &AppConfig, 
     processing_config: &ProcessingConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let nested_actors: Vec<()> = std::fs::read_dir(Path::new(config.json_dir.as_str()))?
+    let nested_actors: Vec<()> = std::fs::read_dir(Path::new(config.large_json_dir.as_str()))?
         .filter_map(|entry| entry.ok())
         .filter(|entry| 
             entry.path().file_name().and_then(|s| s.to_str()) 

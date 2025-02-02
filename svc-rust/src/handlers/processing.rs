@@ -17,7 +17,7 @@ struct ProcessingConfig {
     /// Output filename
     output_filename: &'static str,
     /// Processing strategy (closure that defines how to process files)
-    processing_strategy: Box<dyn Fn(&Path) -> Result<Vec<Actor>, Box<dyn std::error::Error>>>,
+    processing_strategy: Box<dyn Fn(&AppConfig, &Path) -> Result<Vec<Actor>, Box<dyn std::error::Error>>>,
     /// Large processing strategy (for stream processing)
     large_processing_strategy: Box<dyn Fn(&AppConfig, &Path) -> Result<(), Box<dyn std::error::Error>>>,
 }
@@ -36,7 +36,7 @@ impl Default for ProcessingConfig {
         Self {
             exclude_filename: "actors.json",
             output_filename: "actors.json",
-            processing_strategy: Box::new(|path| process_json_file(path)),
+            processing_strategy: Box::new(|config, path| process_json_file(&config, path)),
             large_processing_strategy: Box::new(|config, path| 
                 process_large_json_stream(config, path)
             ),
@@ -58,7 +58,7 @@ fn process_directory(
             entry.path().extension().and_then(|s| s.to_str()) 
             == Some("json")
         )
-        .map(|entry| (processing_config.processing_strategy)(&entry.path()))
+        .map(|entry| (processing_config.processing_strategy)(&config, &entry.path()))
         .collect::<Result<Vec<_>, _>>()?;
 
     let actors: Vec<Actor> = nested_actors.into_iter().flatten().collect();
@@ -104,7 +104,7 @@ pub(crate) fn process_json_dir(
     let processing_config = ProcessingConfig {
         exclude_filename: "actors.json",
         output_filename: "actors.json",
-        processing_strategy: Box::new(|path| process_json_file(path)),
+        processing_strategy: Box::new(|config, path| process_json_file(config, path)),
         large_processing_strategy: Box::new(|config, path| 
             process_large_json_stream(config, path)
         ),  
@@ -118,7 +118,7 @@ pub(crate) fn process_large_json_dir(
     let processing_config = ProcessingConfig {
         exclude_filename: "actors-stream.json",
         output_filename: "actors-stream.json",
-        processing_strategy: Box::new(|path| process_json_file(path)),
+        processing_strategy: Box::new(|config, path| process_json_file(config, path)),
         large_processing_strategy: Box::new(|config, path| 
             process_large_json_stream(config, path)
         ),

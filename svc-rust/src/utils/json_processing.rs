@@ -1,7 +1,5 @@
 use std::{
-    fs::File,
-    io::{BufReader, Write},
-    path::{Path, PathBuf},
+    fs::File, io::{BufReader, Write}, path::{Path, PathBuf}
 };
 
 use tracing::error;
@@ -12,17 +10,21 @@ use crate::{
 };
 
 pub(crate) fn process_json_file(
+    config: &config::AppConfig,
     file_path: &Path,
 ) -> Result<Vec<Actor>, Box<dyn std::error::Error>> {
     let file = File::open(file_path)?;
-    let _reader = BufReader::new(file);
+    let reader = BufReader::new(file);
 
     // Use serde_json to parse the entire file as a JSON array or stream
-    let records: Vec<Event> = serde_json::from_reader(_reader)?;
+    let records: Vec<Event> = serde_json::from_reader(reader)?;
     let actors: Vec<Actor> = records
         .into_iter()
         .filter_map(|record| record.actor)
         .collect();
+
+    let output_path = PathBuf::from(config.json_dir.to_owned() + "actors.json");
+    std::fs::write(output_path, serde_json::to_string(&actors).unwrap())?;
 
     Ok(actors)
 }
@@ -32,10 +34,11 @@ pub fn process_large_json_stream(
     file_path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let file = File::open(file_path)?;
-    let _reader = BufReader::new(file);
+    let reader = BufReader::new(file);
 
     // Read entire file contents to handle no-line-terminator case
-    let file_contents = std::fs::read_to_string(file_path)?;
+    let records: Vec<Event> = serde_json::from_reader(reader)?;
+    let file_contents = serde_json::to_string(&records)?;
 
     // Try parsing as JSON array first
     if let Ok(records) = serde_json::from_str::<Vec<serde_json::Value>>(&file_contents) {
@@ -49,7 +52,6 @@ pub fn process_large_json_stream(
             match record.get("actor") {
                 Some(actor) => {
                     // Add comma before non-first items
-
                     output_file.write_all(b",")?;
 
                     // Write actor directly to file

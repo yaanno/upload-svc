@@ -2,6 +2,10 @@
 name = "json-stream-parsing"
 path = "json_stream_parsing.rs"
 
+[[bin]]
+name = "high-performance-json-stream"
+path = "high_performance_json_stream.rs"
+
 [package]
 name = "json-stream-parsing-example"
 version = "0.1.0"

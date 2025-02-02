@@ -5,3 +5,4 @@ tmp*
 uploads*
 performance*
 system_resources*
+examples/*.json

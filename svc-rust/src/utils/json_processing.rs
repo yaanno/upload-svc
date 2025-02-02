@@ -1,8 +1,8 @@
 use std::{
-    fs::File, io::{BufReader, Write}, path::{Path, PathBuf}
+    fs::File,
+    io::{BufReader, Write},
+    path::{Path, PathBuf},
 };
-
-use tracing::error;
 
 use crate::{
     config,
@@ -32,11 +32,12 @@ pub(crate) fn process_json_file(
     // Write JSON string to file
     let formatted_json = serde_json::to_string_pretty(&actors)
         .map_err(|e| format!("Failed to serialize actors: {}", e))?;
-    
+
     // Write the formatted JSON string
-    output_file.write_all(formatted_json.as_bytes())
+    output_file
+        .write_all(formatted_json.as_bytes())
         .map_err(|e| format!("Failed to write to file {}: {}", output_path.display(), e))?;
-    
+
     output_file.flush()?;
 
     Ok(actors)
@@ -51,7 +52,7 @@ pub fn process_large_json_stream(
 
     // Create a streaming JSON deserializer
     let stream = serde_json::Deserializer::from_reader(reader).into_iter::<serde_json::Value>();
-    
+
     // Prepare output file
     let output_path = PathBuf::from(config.json_dir.to_owned() + "actors-stream.json");
     let mut output_file = File::create(&output_path)?;

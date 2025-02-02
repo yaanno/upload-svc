@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::config::{self, AppConfig};
+use crate::config::AppConfig;
 use crate::handlers::processing;
 use crate::utils::file_processing;
 use actix_multipart::Multipart;

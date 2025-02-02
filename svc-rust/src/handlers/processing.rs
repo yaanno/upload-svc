@@ -3,7 +3,7 @@ use actix_web::web;
 use crate::config::AppConfig;
 use crate::types::Actor;
 use crate::utils::json_processing::{
-    process_json_file, process_large_json_stream, ProcessingStats,
+    process_json_file, process_large_json_stream,
 };
 use std::fmt::Debug;
 use std::fs::File;
@@ -19,7 +19,7 @@ struct ProcessingConfig {
     /// Processing strategy (closure that defines how to process files)
     processing_strategy: Box<dyn Fn(&Path) -> Result<Vec<Actor>, Box<dyn std::error::Error>>>,
     /// Large processing strategy (for stream processing)
-    large_processing_strategy: Box<dyn Fn(&AppConfig, &Path, usize) -> Result<ProcessingStats, Box<dyn std::error::Error>>>,
+    large_processing_strategy: Box<dyn Fn(&AppConfig, &Path) -> Result<(), Box<dyn std::error::Error>>>,
 }
 
 impl Debug for ProcessingConfig {
@@ -37,8 +37,8 @@ impl Default for ProcessingConfig {
             exclude_filename: "actors.json",
             output_filename: "actors.json",
             processing_strategy: Box::new(|path| process_json_file(path)),
-            large_processing_strategy: Box::new(|config, path, chunk_size| 
-                process_large_json_stream(config, path, chunk_size)
+            large_processing_strategy: Box::new(|config, path| 
+                process_large_json_stream(config, path)
             ),
         }
     }
@@ -78,7 +78,7 @@ fn process_large_directory(
     config: &AppConfig, 
     processing_config: &ProcessingConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let nested_actors: Vec<ProcessingStats> = std::fs::read_dir(Path::new(config.json_dir.as_str()))?
+    let nested_actors: Vec<()> = std::fs::read_dir(Path::new(config.json_dir.as_str()))?
         .filter_map(|entry| entry.ok())
         .filter(|entry| 
             entry.path().file_name().and_then(|s| s.to_str()) 
@@ -89,11 +89,11 @@ fn process_large_directory(
             == Some("json")
         )
         .map(|entry| 
-            (processing_config.large_processing_strategy)(config, &entry.path(), 1_000_000_000)
+            (processing_config.large_processing_strategy)(config, &entry.path())
         )
         .collect::<Result<Vec<_>, _>>()?;
 
-    println!("{:?}", nested_actors);
+    println!("{:?}", nested_actors.len());
 
     Ok(())
 }
@@ -101,7 +101,14 @@ fn process_large_directory(
 pub(crate) fn process_json_dir(
     config: web::Data<AppConfig>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let processing_config = ProcessingConfig::default();
+    let processing_config = ProcessingConfig {
+        exclude_filename: "actors.json",
+        output_filename: "actors.json",
+        processing_strategy: Box::new(|path| process_json_file(path)),
+        large_processing_strategy: Box::new(|config, path| 
+            process_large_json_stream(config, path)
+        ),  
+    };
     process_directory(&config, &processing_config)
 }
 
@@ -112,8 +119,8 @@ pub(crate) fn process_large_json_dir(
         exclude_filename: "actors-stream.json",
         output_filename: "actors-stream.json",
         processing_strategy: Box::new(|path| process_json_file(path)),
-        large_processing_strategy: Box::new(|config, path, chunk_size| 
-            process_large_json_stream(config, path, chunk_size)
+        large_processing_strategy: Box::new(|config, path| 
+            process_large_json_stream(config, path)
         ),
     };
     process_large_directory(&config, &processing_config)

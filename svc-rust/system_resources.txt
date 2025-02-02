@@ -1,17 +1,17 @@
-Processes: 575 total, 3 running, 572 sleeping, 2947 threads 
-2025/02/02 14:45:59
-Load Avg: 2.48, 1.82, 1.70 
-CPU usage: 17.24% user, 9.96% sys, 72.79% idle 
-SharedLibs: 520M resident, 85M data, 65M linkedit.
-MemRegions: 326168 total, 7237M resident, 216M private, 3180M shared.
-PhysMem: 17G used (3076M wired, 2456M compressor), 200M unused.
-VM: 247T vsize, 5536M framework vsize, 8291166(0) swapins, 9506901(0) swapouts.
-Networks: packets: 2791191/10G in, 3081186/11G out.
-Disks: 14087434/587G read, 4270587/308G written.
+Processes: 585 total, 3 running, 582 sleeping, 3013 threads 
+2025/02/02 15:06:45
+Load Avg: 2.36, 1.76, 1.68 
+CPU usage: 11.95% user, 9.5% sys, 78.98% idle 
+SharedLibs: 521M resident, 79M data, 61M linkedit.
+MemRegions: 339084 total, 6336M resident, 250M private, 3310M shared.
+PhysMem: 17G used (3039M wired, 2595M compressor), 184M unused.
+VM: 252T vsize, 5536M framework vsize, 8291181(0) swapins, 9506901(0) swapouts.
+Networks: packets: 2896481/10G in, 3189806/11G out.
+Disks: 14216060/594G read, 4353186/313G written.
 
 PID    COMMAND          %CPU TIME     #TH #WQ #PORTS MEM   PURG CMPRS PGRP  PPID STATE    BOOSTS %CPU_ME %CPU_OTHRS UID FAULTS COW MSGSENT MSGRECV SYSBSD SYSMACH CSW PAGEINS IDLEW POWER INSTRS CYCLES JETPRI USER       #MREGS RPRVT VPRVT VSIZE KPRVT KSHRD
 98491  assistant_cdmd   0.0  00:00.15 2   1   58     4945K 0B   4464K 98491 1    sleeping *0[2]  0.00000 0.00000    503 1993   200 243     72      1152   396     442 335     0     0.0   0      0      0      A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
-98212  countryd         0.0  00:00.24 2   1   50     3393K 0B   2960K 98212 1    sleeping *0[2]  0.00000 0.00000    0   1648   141 368     99      2340   391     573 17      0     0.0   0      0      0      root       N/A    N/A   N/A   N/A   N/A   N/A  
+98212  countryd         0.0  00:00.24 2   1   50     3393K 0B   2976K 98212 1    sleeping *0[2]  0.00000 0.00000    0   1648   141 368     99      2340   391     573 17      0     0.0   0      0      0      root       N/A    N/A   N/A   N/A   N/A   N/A  
 98054  logd_helper      0.0  00:00.04 2   1   20     2065K 0B   1776K 98054 1    sleeping *0[1]  0.00000 0.00000    0   701    122 73      32      408    143     49  2       0     0.0   0      0      0      root       N/A    N/A   N/A   N/A   N/A   N/A  
 98017  AMPArtworkAgent  0.0  00:00.06 2   1   42     4225K 0B   3808K 98017 1    sleeping  0[0]  0.00000 0.00000    503 1242   171 206     69      1618   392     232 29      0     0.0   0      0      0      A200246910 N/A    N/A   N/A   N/A   N/A   N/A  
 98014  com.apple.BKAgen 0.0  00:00.04 2   1   49     3697K 0B   3280K 98014 1    sleeping  0[0]  0.00000 0.00000    503 1240   159 226     56      1540   379     268 25      0     0.0   0      0      0      A200246910 N/A    N/A   N/A   N/A   N/A   N/A  

@@ -63,5 +63,3 @@ echo "- system_resources.txt"
 
 # Optional: Show markdown results
 cat performance_results.md
-
-rm -rf "$PROJECT_DIR/tmp"
